@@ -9,6 +9,12 @@ And you can train the model with
 python3 main.py --exp_name=train
 ```
 
+Current best test acc after 100 epochs
+
+```
+Test :: test acc: 0.774115, test avg acc: 0.739763
+```
+
 ## PCT: Point Cloud Transformer
 This is a Pytorch implementation of PCT: Point Cloud Transformer.
 
