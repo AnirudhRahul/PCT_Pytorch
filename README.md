@@ -1,3 +1,14 @@
+## Modifications
+
+Added the ScanObjectNN dataset for training/eval.
+You need to download and unzip the ScanObjectNN data into a h5_files/ at the root of the project.
+The download can be found here https://docs.google.com/forms/d/e/1FAIpQLSc6tXkTIBkxIgnjOyK-KKj6s2nLBOzJTQdSdlCDHii0C0bhpw/viewform
+
+And you can train the model with 
+```
+python3 main.py --exp_name=train
+```
+
 ## PCT: Point Cloud Transformer
 This is a Pytorch implementation of PCT: Point Cloud Transformer.
 
