@@ -5,12 +5,13 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.optim.lr_scheduler import CosineAnnealingLR
-from data import ModelNet40
+from data import ModelNet40, ScanObjectNN
 from model import Pct
 import numpy as np
 from torch.utils.data import DataLoader
 from util import cal_loss, IOStream
 import sklearn.metrics as metrics
+import matplotlib.pyplot as plt
 
 import time 
 
@@ -27,10 +28,10 @@ def _init_():
     os.system('cp data.py checkpoints' + '/' + args.exp_name + '/' + 'data.py.backup')
 
 def train(args, io):
-    train_loader = DataLoader(ModelNet40(partition='train', num_points=args.num_points), num_workers=8,
-                            batch_size=args.batch_size, shuffle=True, drop_last=True)
-    test_loader = DataLoader(ModelNet40(partition='test', num_points=args.num_points), num_workers=8,
-                            batch_size=args.test_batch_size, shuffle=True, drop_last=False)
+    train_loader = DataLoader(ScanObjectNN(partition='train', num_points=2048), num_workers=8,
+                            batch_size=32, shuffle=True, drop_last=True)
+    test_loader = DataLoader(ScanObjectNN(partition='test', num_points=2048), num_workers=8,
+                            batch_size=32, shuffle=True, drop_last=False)
 
     device = torch.device("cuda" if args.cuda else "cpu")
 
@@ -49,7 +50,8 @@ def train(args, io):
     
     criterion = cal_loss
     best_test_acc = 0
-
+    losses = []
+    test_losses = []
     for epoch in range(args.epochs):
         scheduler.step()
         train_loss = 0.0
@@ -79,7 +81,7 @@ def train(args, io):
             train_true.append(label.cpu().numpy())
             train_pred.append(preds.detach().cpu().numpy())
             idx += 1
-            
+        losses.append(train_loss*1.0/count)
         print ('train total time is',total_time)
         train_true = np.concatenate(train_true)
         train_pred = np.concatenate(train_pred)
@@ -91,6 +93,16 @@ def train(args, io):
                                                                                 train_true, train_pred))
         io.cprint(outstr)
 
+        matrix = metrics.confusion_matrix(train_true, train_pred)
+        per_class_acc = matrix.diagonal()/matrix.sum(axis=1)
+        print("Train", per_class_acc)
+
+        plt.figure()
+        plt.xlabel('Epochs')
+        plt.ylabel('Train Loss')
+        plt.plot(losses)
+        plt.savefig('train_loss.png')
+        plt.close()
         ####################
         # Test
         ####################
@@ -114,6 +126,7 @@ def train(args, io):
             test_loss += loss.item() * batch_size
             test_true.append(label.cpu().numpy())
             test_pred.append(preds.detach().cpu().numpy())
+        test_losses.append(test_loss*1.0/count)
         print ('test total time is', total_time)
         test_true = np.concatenate(test_true)
         test_pred = np.concatenate(test_pred)
@@ -124,13 +137,25 @@ def train(args, io):
                                                                             test_acc,
                                                                             avg_per_class_acc)
         io.cprint(outstr)
+        
+        matrix = metrics.confusion_matrix(test_true, test_pred)
+        per_class_acc = matrix.diagonal()/matrix.sum(axis=1)
+        print("Test", per_class_acc)
+        
+        plt.figure()
+        plt.xlabel('Epochs')
+        plt.ylabel('Test Loss')
+        plt.plot(test_losses)
+        plt.savefig('test_loss.png')
+        plt.close()
+
         if test_acc >= best_test_acc:
             best_test_acc = test_acc
             torch.save(model.state_dict(), 'checkpoints/%s/models/model.t7' % args.exp_name)
 
 
 def test(args, io):
-    test_loader = DataLoader(ModelNet40(partition='test', num_points=args.num_points),
+    test_loader = DataLoader(ScanObjectNN(partition='test', num_points=args.num_points),
                             batch_size=args.test_batch_size, shuffle=True, drop_last=False)
 
     device = torch.device("cuda" if args.cuda else "cpu")
@@ -187,7 +212,7 @@ if __name__ == "__main__":
                         help='random seed (default: 1)')
     parser.add_argument('--eval', type=bool,  default=False,
                         help='evaluate the model')
-    parser.add_argument('--num_points', type=int, default=1024,
+    parser.add_argument('--num_points', type=int, default=2048,
                         help='num of points to use')
     parser.add_argument('--dropout', type=float, default=0.5,
                         help='dropout rate')

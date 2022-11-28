@@ -3,6 +3,7 @@ import glob
 import h5py
 import numpy as np
 from torch.utils.data import Dataset
+import h5py
 
 def download():
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -56,10 +57,16 @@ def jitter_pointcloud(pointcloud, sigma=0.01, clip=0.02):
     pointcloud += np.clip(sigma * np.random.randn(N, C), -1*clip, clip)
     return pointcloud
 
+def load_h5(h5_filename):
+    f = h5py.File(h5_filename)
+    data = f['data'][:]
+    label = f['label'][:]
+    return data, label
 
 class ModelNet40(Dataset):
     def __init__(self, num_points, partition='train'):
         self.data, self.label = load_data(partition)
+        print("ModelNet", self.data.shape, self.label.shape)
         self.num_points = num_points
         self.partition = partition        
 
@@ -75,10 +82,39 @@ class ModelNet40(Dataset):
     def __len__(self):
         return self.data.shape[0]
 
+TRAIN_FILE = "h5_files/main_split/training_objectdataset_augmentedrot_scale75.h5"
+TEST_FILE = "h5_files/main_split/test_objectdataset_augmentedrot_scale75.h5"
+
+class ScanObjectNN(Dataset):
+    def __init__(self, num_points, partition='train'):
+        self.data, self.label = load_h5(TRAIN_FILE if partition=='train' else TEST_FILE)
+        self.label = np.int64(self.label)
+        print("ScanObjectNN", self.data.shape, self.label.shape)
+        print("ScanObjectNN", self.data.dtype, self.label.dtype)
+
+        self.num_points = num_points
+        self.partition = partition        
+
+    def __getitem__(self, item):
+        pointcloud = self.data[item][:self.num_points]
+        label = self.label[item]
+        if self.partition == 'train':
+            # pointcloud = random_point_dropout(pointcloud) # open for dgcnn not for our idea  for all
+            pointcloud = random_point_dropout(pointcloud)
+            pointcloud = translate_pointcloud(pointcloud)
+            pointcloud = jitter_pointcloud(pointcloud)
+            np.random.shuffle(pointcloud)
+        return pointcloud, label
+
+    def __len__(self):
+        return self.data.shape[0]
+
+
 
 if __name__ == '__main__':
-    train = ModelNet40(1024)
-    test = ModelNet40(1024, 'test')
-    for data, label in train:
-        print(data.shape)
-        print(label.shape)
+    # train = ModelNet40(1024)
+    train2 = ScanObjectNN(2048)
+    # test = ModelNet40(1024, 'test')
+    # for data, label in train:
+    #     print(data.shape)
+    #     print(label.shape)
