@@ -34,7 +34,7 @@ def load_data(partition):
     all_label = np.concatenate(all_label, axis=0)
     return all_data, all_label
 
-def random_point_dropout(pc, max_dropout_ratio=0.875):
+def random_point_dropout(pc, max_dropout_ratio=0.5):
     ''' batch_pc: BxNx3 '''
     # for b in range(batch_pc.shape[0]):
     dropout_ratio = np.random.random()*max_dropout_ratio # 0~0.875    
