@@ -37,8 +37,8 @@ def load_data(partition):
 def random_point_dropout(pc, max_dropout_ratio=0.875):
     ''' batch_pc: BxNx3 '''
     # for b in range(batch_pc.shape[0]):
-    dropout_ratio = np.random.random()*max_dropout_ratio # 0~0.875    
-    drop_idx = np.where(np.random.random((pc.shape[0]))<=dropout_ratio)[0]
+    # dropout_ratio = np.random.random()*max_dropout_ratio # 0~0.875    
+    drop_idx = np.where(np.random.random((pc.shape[0]))<=max_dropout_ratio)[0]
     # print ('use random drop', len(drop_idx))
 
     if len(drop_idx)>0:
