@@ -5,8 +5,8 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.optim.lr_scheduler import CosineAnnealingLR
-from data import ModelNet40, ScanObjectNN
-from model import Pct
+from data import ScanObjectNN
+from model_new import Pct
 import numpy as np
 from torch.utils.data import DataLoader
 from util import cal_loss, IOStream
