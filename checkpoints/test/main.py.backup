@@ -46,14 +46,15 @@ def train(args, io):
         print("Use Adam")
         opt = optim.Adam(model.parameters(), lr=args.lr, weight_decay=1e-4)
 
-    scheduler = CosineAnnealingLR(opt, args.epochs, eta_min=args.lr)
+    opt = optim.Adam(model.parameters(), lr=0.0001, weight_decay=1e-4)
+
+    scheduler = CosineAnnealingLR(opt, args.epochs, eta_min=0.0001)
     
     criterion = cal_loss
     best_test_acc = 0
     losses = []
     test_losses = []
     for epoch in range(args.epochs):
-        scheduler.step()
         train_loss = 0.0
         count = 0.0
         model.train()
@@ -81,6 +82,7 @@ def train(args, io):
             train_true.append(label.cpu().numpy())
             train_pred.append(preds.detach().cpu().numpy())
             idx += 1
+        scheduler.step()
         losses.append(train_loss*1.0/count)
         print ('train total time is',total_time)
         train_true = np.concatenate(train_true)
@@ -198,7 +200,7 @@ if __name__ == "__main__":
                         help='Size of batch)')
     parser.add_argument('--test_batch_size', type=int, default=16, metavar='batch_size',
                         help='Size of batch)')
-    parser.add_argument('--epochs', type=int, default=250, metavar='N',
+    parser.add_argument('--epochs', type=int, default=200, metavar='N',
                         help='number of episode to train ')
     parser.add_argument('--use_sgd', type=bool, default=True,
                         help='Use SGD')
